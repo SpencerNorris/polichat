@@ -1,3 +1,16 @@
+For all intent and purpose, this is a fork of the following repository. We reuse and modify most of the code available here:
+https://github.com/watson-developer-cloud/conversation-simple
+
+NOTE: MUST ADD YOUR OWN ```credentials.json``` FILE TO THE ROOT DIRECTORY; SHOULD LOOK LIKE THE FOLLOWING:
+```
+{
+  "credentials" :{
+    "url": "https://gateway-a.watsonplatform.net/calls",
+    "apikey": "YOUR_ALCHEMYAPI_KEY"
+   }
+}
+```
+
 # Node.js Starter Overview
 
 The Node.js Starter demonstrates a simple, reusable Node.js web application based on the Express framework.
