@@ -12,5 +12,13 @@
 	"repository": {},
 	"engines": {
 		"node": "4.x"
-	} 
+	}, 
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/SpencerNorris/polichat.git"
+	},
+	"bugs": {
+		"url": "https://github.com/SpencerNorris/polichat/issues"
+	},
+	"homepage": "https://github.com/SpencerNorris/polichat#readme"
 }

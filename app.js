@@ -33,8 +33,6 @@ app.listen(appEnv.port, '0.0.0.0', function() {
   console.log("server starting on " + appEnv.url);
 });
 
-
-
 var parameters = {
   extract: 'entities,keywords,concepts,taxonomy,typed-rels',
   sentiment: 1,
@@ -49,3 +47,4 @@ alchemy_language.combined(parameters, function (err, response) {
   else
     console.log(JSON.stringify(response, null, 2));
 });
+
