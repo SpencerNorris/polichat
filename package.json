@@ -4,7 +4,9 @@
   "description": "Interface for IBM Bluemix application focused on question-answering capability targeting current politics",
   "main": "app.js",
   "dependencies": {
-    "extract-relationships": "0.0.7"
+    "extract-relationships": "0.0.7",
+    "underscore": "^1.8.3",
+    "watson-developer-cloud": "^2.6.1"
   },
   "devDependencies": {},
   "scripts": {
