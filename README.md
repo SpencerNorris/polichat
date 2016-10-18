@@ -1,4 +1,12 @@
-NOTE: MUST ADD YOUR OWN ```credentials.json``` FILE TO THE ROOT DIRECTORY
+NOTE: MUST ADD YOUR OWN ```credentials.json``` FILE TO THE ROOT DIRECTORY; SHOULD LOOK LIKE THE FOLLOWING:
+```
+{
+  "credentials" :{
+    "url": "https://gateway-a.watsonplatform.net/calls",
+    "apikey": "YOUR_ALCHEMYAPI_KEY"
+   }
+}
+```
 
 # Node.js Starter Overview
 
