@@ -1,3 +1,6 @@
+For all intent and purpose, this is a fork of the following repository. We reuse and modify most of the code available here:
+https://github.com/watson-developer-cloud/conversation-simple
+
 NOTE: MUST ADD YOUR OWN ```credentials.json``` FILE TO THE ROOT DIRECTORY; SHOULD LOOK LIKE THE FOLLOWING:
 ```
 {
