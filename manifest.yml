@@ -1,3 +1,7 @@
+declared-services:
+ chat-interface:
+   label: conversation
+   plan: free
 applications:
 - path: .
   memory: 256M
@@ -5,4 +9,12 @@ applications:
   domain: mybluemix.net
   name: polichat
   host: polichat
-  disk_quota: 1024M
+  services:
+  - chat-interface
+  disk_quota: 1024M  
+  command: npm start
+  env:
+    WORKSPACE_ID: b6fd5c17-b4e7-43b3-9166-87cf8137880d
+    NPM_CONFIG_PRODUCTION: false
+
+

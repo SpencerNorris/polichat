@@ -1,24 +1,26 @@
 {
-	"name": "polichat",
-	"version": "0.0.1",
-	"private": true,
-	"scripts": {
-		"start": "node app.js"
-	},
-	"dependencies": {
-		"express": "4.13.x",
-		"cfenv": "1.0.x"
-	},
-	"repository": {},
-	"engines": {
-		"node": "4.x"
-	}, 
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/SpencerNorris/polichat.git"
-	},
-	"bugs": {
-		"url": "https://github.com/SpencerNorris/polichat/issues"
-	},
-	"homepage": "https://github.com/SpencerNorris/polichat#readme"
+  "name": "NodejsStarterApp",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "basic-auth-connect": "^1.0.0",
+    "body-parser": "^1.15.2",
+    "cfenv": "1.0.x",
+    "cloudant": "^1.5.1",
+    "dotenv": "^2.0.0",
+    "express": "^4.13.4",
+    "express-csv": "^0.6.0",
+    "nano": "^6.2.0",
+    "underscore": "^1.8.3",
+    "uuid": "^2.0.3",
+    "vcap_services": "^0.2.0",
+    "watson-developer-cloud": "^2.6.1"
+  },
+  "repository": {},
+  "engines": {
+    "node": "4.x"
+  }
 }
