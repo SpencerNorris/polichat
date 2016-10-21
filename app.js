@@ -110,7 +110,7 @@ function updateMessage(input, response) {
     sentiment: 1,
     maxRetrieve: 1,
     model: 'en-news',
-    text: 'What is Hillary Clinton\'s opinion on the Syrian refugee crisis?'
+    text: input['input']['text']
   };
 
   alchemy_language.combined(parameters, function (err, response) {
