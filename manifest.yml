@@ -7,14 +7,14 @@ applications:
   memory: 256M
   instances: 1
   domain: mybluemix.net
-  name: polichat
-  host: polichat
+  name: politichat
+  host: politichat
   services:
   - chat-interface
-  disk_quota: 1024M  
+  disk_quota: 1024M
   command: npm start
   env:
-    WORKSPACE_ID: b6fd5c17-b4e7-43b3-9166-87cf8137880d
+    WORKSPACE_ID: bbe247fa-d283-4d99-af2f-6b5f75647d5a
     NPM_CONFIG_PRODUCTION: false
-    CONVERSATION_USERNAME: 8e983c1d-2093-471d-8703-94b0ecccb052
-    CONVERSATION_PASSWORD: xDD5WH5liqFl
+    CONVERSATION_USERNAME: 64bb88cb-a781-40e1-b4cc-c9a23b87267f
+    CONVERSATION_PASSWORD: kw6dIm7VZPim
