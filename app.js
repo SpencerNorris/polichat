@@ -38,7 +38,8 @@ var vcapServices = require('vcap_services');
 var basicAuth = require('basic-auth-connect');
 
 // Constants
-const RETRIEVE_ARTICLES = false;
+const RETRIEVE_ARTICLES = true;
+const MIN_KEYWORD_RELEVANCE = 0.5;
 
 // The app owner may optionally configure a cloudand db to track user input.
 // This cloudand db is not required, the app will operate without it.
@@ -99,6 +100,10 @@ app.post('/api/message', function(req, res) {
             return res.status(err.code || 500).json(err);
         }
 
+        console.log(JSON.stringify(data));
+        if (!data.input.text) {
+            return res.json(updateMessage(payload, data));
+        }
         return parseInput(payload, data, res);
 
     });
@@ -115,41 +120,70 @@ function parseInput(payload, data, res) {
 
     alchemy_language.combined(parameters, function(err, response) {
         if (err) {
-            console.log('error:', err);
+            console.log('Alchemy Language error:', err);
             data.output.text += '<br>' + 'Alchemy Language error: ' + JSON.stringify(err);
         } else {
-            var hasEntitiy = (response.entities && response.entities.length > 0);
+            var hasEntity = (response.entities && response.entities.length > 0);
             var hasKeyword = (response.keywords && response.keywords.length > 0);
             var hasDate = (response.dates && response.dates.length > 0);
 
+            var person = {};
+            var startDate = 'now-1y';
+            var keywords = [];
+
+            // retrieve previous parameters from context
+            console.log(JSON.stringify(data.context));
+            if (data.context.person) {
+                person = data.context.person;
+            }
+            if (data.context.startDate) {
+                startDate = data.context.startDate;
+            }
+            if (data.context.keywords) {
+                keywords = data.context.keywords;
+            }
+
             // if the input has usable language, continue parsing
             // if not, send default message
-            if (hasEntitiy || hasKeyword || hasDate) {
+            if (hasEntity || hasKeyword || hasDate) {
                 console.log(JSON.stringify(response));
                 data.output.text = 'Parsing with Alchemy Language';
 
-                if (hasEntitiy) {
-                    parsePerson(response.entities, data);
+                if (hasEntity) {
+                    person = parsePerson(response.entities, data);
+                    if (person) {
+                        data.context.person = person;
+                    }
                 }
 
                 // check if a start date was mentioned, otherwise set to 1 year
-                var startDate = 'now-1y';
                 if (hasDate) {
                     startDate = parseDate(response.dates, data);
+                    data.context.startDate = startDate;
                 }
 
                 if (hasKeyword) {
-                    parseKeywords(response.keywords, data);
+                    var ignoreText = [person.text];
+                    keywords = parseKeywords(response.keywords, ignoreText, data);
+                    data.context.keywords = keywords;
                 }
 
                 if (RETRIEVE_ARTICLES) {
-                    var params = {
-                        start: startDate,
-                        end: 'now',
-                        count: 3,
-                        return: 'enriched.url.title'
-                    };
-                    return getArticles(payload, data, params);
+                    if (person.name && keywords.length > 0) {
+                        var params = {
+                            start: startDate,
+                            end: 'now',
+                            count: 3,
+                            return: 'enriched.url.title'
+                        };
+                        //return getArticles(payload, data, params);
+                    } else if (!person.name && keywords.length === 0) {
+                        data.output.text += '<br>' + 'Please enter a name and topic to continue.';
+                    } else if (!person.name) {
+                        data.output.text += '<br>' + 'Please enter a name to continue.';
+                    } else if (keywords.length === 0) {
+                        data.output.text += '<br>' + 'Please enter a topic to continue.';
+                    }
                 }
             }
 
@@ -201,28 +235,21 @@ function parseDate(dates, data) {
     var dateDifference = Math.round(Math.abs(
         (currDate.getTime() - foundDate.getTime()) / dayInMillisec));
     console.log('Found a date difference of ' + dateDifference + ' days');
+    data.output.text += '<br>' + 'Found date of earliest articles to search for: ' + foundDate.toDateString();
     return 'now-' + dateDifference + 'd';
 
 }
 
-function parseKeywords(keywords, data) {
-    //TODO
-    //From http://www.ibm.com/watson/developercloud/alchemy-language/api/v1/?node#keywords
-    var watson = require('watson-developer-cloud');
-    var alchemy_language = watson.alchemy_language({
-      api_key: 'API_KEY'
-    })
-
-    var parameters = {
-      url: 'http://www.twitter.com/ibmwatson'
-    };
-
-    alchemy_language.keywords(parameters, function (err, response) {
-      if (err)
-        console.log('error:', err);
-      else
-        console.log(JSON.stringify(response, null, 2));
+function parseKeywords(keywords, ignoreText, data) {
+    // remove any keywords found in the ignoreText array
+    keywords = keywords.filter(function (element) {
+        return !ignoreText.indexOf(element) < 0 && element.relevance >= MIN_KEYWORD_RELEVANCE;
     });
+    for (var i = 0, length = keywords.length; i < length; i++) {
+        data.output.text += '<br>' + 'Found keyword: ' + keywords[i].text;
+    }
+
+    return keywords;
 }
 
 function getArticles(payload, data, params) {
