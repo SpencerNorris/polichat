@@ -144,6 +144,30 @@ function parseInput(payload, data, res) {
 
                 if (RETRIEVE_ARTICLES) {
                     var params = {
+                        q: {
+                          enriched :{
+                            url:{
+                              relations:{
+                                relation:{
+                                  object:{
+                                    keywords:{
+                                      keyword:{
+                                        text: 'OBJECT'
+                                      }
+                                    }
+                                  },
+                                  subject:{
+                                    keywords:{
+                                      keyword:{
+                                        text:'SUBJECT'
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
                         start: startDate,
                         end: 'now',
                         count: 3,
