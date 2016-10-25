@@ -207,6 +207,22 @@ function parseDate(dates, data) {
 
 function parseKeywords(keywords, data) {
     //TODO
+    //From http://www.ibm.com/watson/developercloud/alchemy-language/api/v1/?node#keywords
+    var watson = require('watson-developer-cloud');
+    var alchemy_language = watson.alchemy_language({
+      api_key: 'API_KEY'
+    })
+
+    var parameters = {
+      url: 'http://www.twitter.com/ibmwatson'
+    };
+
+    alchemy_language.keywords(parameters, function (err, response) {
+      if (err)
+        console.log('error:', err);
+      else
+        console.log(JSON.stringify(response, null, 2));
+    });
 }
 
 function getArticles(payload, data, params) {
