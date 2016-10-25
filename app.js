@@ -147,7 +147,7 @@ function parseInput(payload, data, res) {
             // if not, send default message
             if (hasEntity || hasKeyword || hasDate) {
                 console.log(JSON.stringify(response));
-                data.output.text = 'Parsing with Alchemy Language';
+                data.output.text = 'Parsing with Alchemy Language...';
 
                 if (hasEntity) {
                     person = parsePerson(response.entities, data);
@@ -179,7 +179,7 @@ function parseInput(payload, data, res) {
                                       object:{
                                         keywords:{
                                           keyword:{
-                                            text: keywords[0]
+                                            text: keywords[0].text
                                           }
                                         }
                                       },
@@ -194,13 +194,13 @@ function parseInput(payload, data, res) {
                                   }
                                 }
                               }
-                            }
+                            },
                             start: startDate,
                             end: 'now',
                             count: 3,
                         return: 'enriched.url.title,enriched.url.url,enriched.url.relations.relation'
                         };
-                        //return getArticles(payload, data, params);
+                        return getArticles(payload, data, params, res);
                     } else if (!person.name && keywords.length === 0) {
                         data.output.text += '<br>' + 'Please enter a name and topic to continue.';
                     } else if (!person.name) {
@@ -212,7 +212,6 @@ function parseInput(payload, data, res) {
             }
 
         }
-
         return res.json(updateMessage(payload, data));
 
     });
@@ -267,7 +266,7 @@ function parseDate(dates, data) {
 function parseKeywords(keywords, ignoreText, data) {
     // remove any keywords found in the ignoreText array
     keywords = keywords.filter(function (element) {
-        return !ignoreText.indexOf(element) < 0 && element.relevance >= MIN_KEYWORD_RELEVANCE;
+        return ignoreText.indexOf(element) < 0 && element.relevance >= MIN_KEYWORD_RELEVANCE;
     });
     for (var i = 0, length = keywords.length; i < length; i++) {
         data.output.text += '<br>' + 'Found keyword: ' + keywords[i].text;
@@ -276,24 +275,20 @@ function parseKeywords(keywords, ignoreText, data) {
     return keywords;
 }
 
-function getArticles(payload, data, params) {
-
+function getArticles(payload, data, params, res) {
     // make a call to alchemy data news with concept data
     alchemy_data_news.getNews(params, function(err, news) {
         if (err) {
             console.log('Alchemy news error:', err);
             data.output.text += '<br>' + 'Alchemy news error: ' + JSON.stringify(err);
         } else {
-            console.log(JSON.stringify(news));
-
             for (var i = 0, length = news.result.docs.length; i < length; i++) {
                 var article = news.result.docs[i];
                 console.log('Found article: ' + article.source.enriched.url.title);
                 data.output.text += '<br>' + 'Found article: ' + article.source.enriched.url.title;
             }
-
         }
-        // Send message back to chat
+        return res.json(updateMessage(payload, data));
     });
 }
 
