@@ -171,10 +171,34 @@ function parseInput(payload, data, res) {
                 if (RETRIEVE_ARTICLES) {
                     if (person.name && keywords.length > 0) {
                         var params = {
+                        q: {
+                          enriched :{
+                            url:{
+                              relations:{
+                                relation:{
+                                  object:{
+                                    keywords:{
+                                      keyword:{
+                                        text: 'OBJECT'
+                                      }
+                                    }
+                                  },
+                                  subject:{
+                                    keywords:{
+                                      keyword:{
+                                        text:'SUBJECT'
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
                             start: startDate,
                             end: 'now',
                             count: 3,
-                            return: 'enriched.url.title'
+                        return: 'enriched.url.title,enriched.url.url,enriched.url.relations.relation'
                         };
                         //return getArticles(payload, data, params);
                     } else if (!person.name && keywords.length === 0) {
