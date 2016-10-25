@@ -171,30 +171,30 @@ function parseInput(payload, data, res) {
                 if (RETRIEVE_ARTICLES) {
                     if (person.name && keywords.length > 0) {
                         var params = {
-                        q: {
-                          enriched :{
-                            url:{
-                              relations:{
-                                relation:{
-                                  object:{
-                                    keywords:{
-                                      keyword:{
-                                        text: 'OBJECT'
-                                      }
-                                    }
-                                  },
-                                  subject:{
-                                    keywords:{
-                                      keyword:{
-                                        text:'SUBJECT'
+                            q: {
+                              enriched :{
+                                url:{
+                                  relations:{
+                                    relation:{
+                                      object:{
+                                        keywords:{
+                                          keyword:{
+                                            text: keywords[0]
+                                          }
+                                        }
+                                      },
+                                      subject:{
+                                        keywords:{
+                                          keyword:{
+                                            text: person.name
+                                          }
+                                        }
                                       }
                                     }
                                   }
                                 }
                               }
                             }
-                          }
-                        }
                             start: startDate,
                             end: 'now',
                             count: 3,
