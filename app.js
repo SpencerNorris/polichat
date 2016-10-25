@@ -171,7 +171,7 @@ function parseInput(payload, data, res) {
                         start: startDate,
                         end: 'now',
                         count: 3,
-                        return: 'enriched.url.title'
+                        return: 'enriched.url.title,enriched.url.url,enriched.url.relations.relation'
                     };
                     return getArticles(payload, data, params);
                 }
