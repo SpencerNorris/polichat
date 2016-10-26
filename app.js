@@ -117,7 +117,21 @@ function parseInput(payload, data, res) {
         text: data.input.text,
         anchorDate: currDate.toISOString().substring(0, 10) + ' 00:00:00'
     };
-    alchemy_language.combined(parameters, function(err, response) {
+    var response = {
+             entities: [
+               {
+                 {
+                   'type': 'Person',
+                   'text' : 'Hillary Clinton'
+                 }
+               }
+             ],
+             keywords:[
+               {'text' : "Syria"},
+               {'text' : "Syrian refugee crisis"}
+             ]
+         };
+    //alchemy_language.combined(parameters, function(err, response) {
         if (err) {
             console.log('Alchemy Language error:', err);
             data.output.text += '<br>' + 'Alchemy Language error: ' + JSON.stringify(err);
@@ -217,7 +231,7 @@ function parseInput(payload, data, res) {
         }
         return res.json(updateMessage(payload, data));
 
-    });
+    //});
 }
 
 function parsePerson(entities, data) {
@@ -281,9 +295,28 @@ function parseKeywords(keywords, ignoreText, data) {
     return keywords;
 }
 
+//Pulled from the following StackOverflow answer:
+//http://stackoverflow.com/questions/1885557/simplest-code-for-array-intersection-in-javascript
+function intersection(a, b)
+{
+  var result = [];
+  while( a.length > 0 && b.length > 0 )
+  {
+     if      (a[0] < b[0] ){ a.shift(); }
+     else if (a[0] > b[0] ){ b.shift(); }
+     else /* they're equal */
+     {
+       result.push(a.shift());
+       b.shift();
+     }
+  }
+  return result.length;
+}
+
+
 function getRelations(payload, data, params, res) {
     // make a call to alchemy data news with concept data
-    alchemy_data_news.getNews(params, function(err, news) {
+    //alchemy_data_news.getNews(params, function(err, news) {
         if (err) {
             console.log('Alchemy news error:', err);
             data.output.text += '<br>' + 'Alchemy news error: ' + JSON.stringify(err);
@@ -306,7 +339,11 @@ function getRelations(payload, data, params, res) {
                   relation.subject.entities.forEach(function(entity){
                     //If the entity is disambiguated and shares a name, then it must be the subject
                     if(entity.text)
-                      if(entity.text.toLowerCase().indexOf(subj) !== -1){
+                      //TODO: generalize to subj instead of preselected strings
+                      //if(entity.text.toLowerCase().indexOf(subj) !== -1)
+                      if(entity.text.toLowerCase().indexOf('clinton') !== -1
+                         || entity.text.toLowerCase().indexOf('obama') !== -1
+                         || entity.text.toLowerCase().indexOf('trump') !== -1){
                         hasSubj = true;
                         console.log("Match on subject entity name: " + entity.text.toLowerCase());
                       }
@@ -319,7 +356,10 @@ function getRelations(payload, data, params, res) {
                   relation.object.keywords.forEach(function(keyword){
                   //If the keyword contains the object text, then it's likely what we're looking for
                     if(keyword.text)
-                      if(keyword.text.toLowerCase().indexOf(obj) !== -1){
+                      //if(keyword.text.toLowerCase().indexOf(obj) !== -1){
+                      if(keyword.text.toLowerCase().indexOf('debt') !== -1
+                          || keyword.text.toLowerCase().indexOf('immigration') !== -1
+                          ||keyword.text.toLowerCase().indexOf('syria') !== -1){
                         hasObj = true;
                         console.log("Match on object keyword: " + keyword.text.toLowerCase());
                       }
@@ -340,43 +380,8 @@ function getRelations(payload, data, params, res) {
             });
         } //end of 'else' block
         return res.json(updateMessage(payload, data));
-    });
+    //});
 }
-
-/*
-function getRelations(payload, data, params, res) {
-
-    console.log('retrieving articles...')
-    // make a call to alchemy data news with concept data
-    alchemy_data_news.getNews(params, function(err, news) {
-        if (err) {
-            console.log('Alchemy news error:', err);
-            data.output.text += '<br>' + 'Alchemy news error: ' + JSON.stringify(err);
-        } else {
-            console.log(JSON.stringify(news));
-
-            //iterate over retrieved articles
-            for (var i = 0, length = news.result.docs.length; i < length; i++) {
-                var article = news.result.docs[i];
-                console.log('Found article: ' + article.source.enriched.url.title);
-                data.output.text += '<br>' + 'Found article: ' + article.source.enriched.url.title;
-                //iterate over relations extracted from article
-                for(relation in article.relations.source.enriched.ur.relations){
-
-                    console.log(JSON.stringify(relation));
-                    //TODO:Check if relation subject, object match ones passed in params
-                    if(  relation.subject.keywords.text
-                          == params.q.enriched.url.relations.relation.subject.keywords.keyword &&
-                         relation.object.keywords.text
-                          == params.q.enriched.url.relations.relation.object.keywords.keyword)
-                        console.log('Relation match: '+ JSON.stringify(relation));
-                }
-            }
-        }
-        return res.json(updateMessage(payload, data));
-    });
-}
-*/
 
 /**
  * Updates the response text using the intent confidence
