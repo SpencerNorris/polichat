@@ -51,7 +51,7 @@
 
                     <section>
                         <h2>Overview</h2>
-                        <img src="images/spooner.jpg" />
+                        <img src="images/screenshot.png" />
                         <p>With Polichat the goal is to ask about a candidates political stances via natural language.</p>
                     </section>
 
@@ -64,7 +64,17 @@
                     <section>
                         <h2>Chat Interface</h2>
                         <pre><code class="js" data-trim contenteditable>
-Code goes here
+function parseInput(payload, data, res) {
+    var currDate = new Date();
+    var parameters = {
+        extract: 'entities,keywords,dates',
+        text: data.input.text,
+        anchorDate: currDate.toISOString().substring(0, 10) + ' 00:00:00'
+    };
+    alchemy_language.combined(parameters, function(err, response) {
+.
+.
+.
                         </code></pre>
                         <p>Keywords are extracted from the chat interface using the Alchemy Language API.</p>
                     </section>
@@ -72,7 +82,16 @@ Code goes here
                     <section>
                         <h2>Article Retrieval</h2>
                         <pre><code class="js" data-trim contenteditable>
-Code goes here
+function getRelations(payload, data, params, res) {
+    // make a call to alchemy data news with concept data
+    alchemy_data_news.getNews(params, function(err, news) {
+        if (err) {
+            console.log('Alchemy news error:', err);
+            data.output.text += '<br>' + 'Alchemy news error: ' + JSON.stringify(err);
+        } else {
+.
+.
+.
                         </code></pre>
                         <p>Articles are searched for via the AlchemyNews relation search.</p>
                     </section>
@@ -80,14 +99,27 @@ Code goes here
                     <section>
                         <h2>Position Extraction</h2>
                         <pre><code class="js" data-trim contenteditable>
-Code goes here
+var results = news.result.docs.filter(function(doc){
+              //Filter relations for each doc
+              var _results = doc.source.enriched.url.relations.filter(function(relation){
+                var hasSubj = false;
+                var hasObj = false;
+                //try{
+                  //Iterate over all entities in the relation's subject group
+                  if(relation.subject.entities)
+                  if(relation.subject.entities.length > 0)
+                  relation.subject.entities.forEach(function(entity){
+                    //If the entity is disambiguated and shares a name, then it must be the subject
+.
+.
+.
                         </code></pre>
                         <p>Positions are parsed by searching for non-empty results with subjects, verbs, and objects.</p>
                     </section>
 
                     <section>
                         <h2>Results</h2>
-                        <p>Most significant problem we have solved in this development</p>
+                        <p>Showed it possible to match natural language to queries for document retrieval, and showed it possible to extract relationships between entities in these documents.</p>
                     </section>
 
                     <section>
