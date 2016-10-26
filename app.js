@@ -117,21 +117,7 @@ function parseInput(payload, data, res) {
         text: data.input.text,
         anchorDate: currDate.toISOString().substring(0, 10) + ' 00:00:00'
     };
-    var response = {
-             entities: [
-               {
-                 {
-                   'type': 'Person',
-                   'text' : 'Hillary Clinton'
-                 }
-               }
-             ],
-             keywords:[
-               {'text' : "Syria"},
-               {'text' : "Syrian refugee crisis"}
-             ]
-         };
-    //alchemy_language.combined(parameters, function(err, response) {
+    alchemy_language.combined(parameters, function(err, response) {
         if (err) {
             console.log('Alchemy Language error:', err);
             data.output.text += '<br>' + 'Alchemy Language error: ' + JSON.stringify(err);
@@ -231,7 +217,7 @@ function parseInput(payload, data, res) {
         }
         return res.json(updateMessage(payload, data));
 
-    //});
+    });
 }
 
 function parsePerson(entities, data) {
@@ -316,7 +302,7 @@ function intersection(a, b)
 
 function getRelations(payload, data, params, res) {
     // make a call to alchemy data news with concept data
-    //alchemy_data_news.getNews(params, function(err, news) {
+    alchemy_data_news.getNews(params, function(err, news) {
         if (err) {
             console.log('Alchemy news error:', err);
             data.output.text += '<br>' + 'Alchemy news error: ' + JSON.stringify(err);
@@ -380,7 +366,7 @@ function getRelations(payload, data, params, res) {
             });
         } //end of 'else' block
         return res.json(updateMessage(payload, data));
-    //});
+    });
 }
 
 /**
