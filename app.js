@@ -306,14 +306,18 @@ function getRelations(payload, data, params, res) {
                 //Iterate over all entities in the relation's subject group
                 for(entity in relation.subject.entities){
                   //If the entity is disambiguated and shares a name, then it must be the subject
-                  if(entity.disambiguated.name.toLowerCase().indexOf(subj) !== -1)
+                  if(entity.disambiguated.name.toLowerCase().indexOf(subj) !== -1){
                     hasSubj = true;
+                    console.log("Match on subject entity name: " + entity.disambiguated.name.toLowerCase());
+                  }
                 }
                 //Iterate over all keywords in the relation's object group
                 for(keyword in relation.object.keywords){
                   //If the keyword contains the object text, then it's likely what we're looking for
-                  if(keyword.text.toLowerCase().indexOf(obj) !== -1)
+                  if(keyword.text.toLowerCase().indexOf(obj) !== -1){
                     hasObj = true;
+                    console.log("Match on object keyword: " + keyword.text.toLowerCase());
+                  }
                 }
                 //If the relation has both a subject and object we're interested in, then it's good
                 if(hasSubj && hasObj)
