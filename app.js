@@ -201,7 +201,8 @@ function parseInput(payload, data, res) {
                             count: 3,
                         return: 'enriched.url.url,enriched.url.title,enriched.url.relations.relation'
                         };
-                        data.context.relations = getRelations(payload, data, params);
+                        data.context.relations = getRelations(payload, data, params, res);
+                        return data;
                         //TODO: Implement appendMessage --> should return data with the message derived from the relations attached
                         //return appendMessage(payload, data);
 
@@ -282,7 +283,7 @@ function parseKeywords(keywords, ignoreText, data) {
     return keywords;
 }
 
-function getRelations(payload, data, params) {
+function getRelations(payload, data, params, res) {
 
     console.log('retrieving articles...')
     // make a call to alchemy data news with concept data
