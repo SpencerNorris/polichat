@@ -40,6 +40,7 @@ var basicAuth = require('basic-auth-connect');
 // Constants
 const RETRIEVE_ARTICLES = true;
 const MIN_KEYWORD_RELEVANCE = 0.5;
+const USE_ALCHEMY_NEWS = false;
 
 // The app owner may optionally configure a cloudand db to track user input.
 // This cloudand db is not required, the app will operate without it.
@@ -170,37 +171,37 @@ function parseInput(payload, data, res) {
 
                 if (RETRIEVE_ARTICLES) {
                     if (person.name && keywords.length > 0) {
-                      console.log("Attempting document retrieval")
+                        console.log("Attempting document retrieval")
                         var params = {
                             q: {
-                              enriched :{
-                                url:{
-                                  relations:{
-                                    relation:{
-                                      object:{
-                                        keywords:{
-                                          keyword:{
-                                            text: keywords[0].text
-                                          }
+                                enriched: {
+                                    url: {
+                                        relations: {
+                                            relation: {
+                                                object: {
+                                                    keywords: {
+                                                        keyword: {
+                                                            text: keywords[0].text
+                                                        }
+                                                    }
+                                                },
+                                                subject: {
+                                                    keywords: {
+                                                        keyword: {
+                                                            text: person.name
+                                                        }
+                                                    }
+                                                }
+                                            }
                                         }
-                                      },
-                                      subject:{
-                                        keywords:{
-                                          keyword:{
-                                            text: person.name
-                                          }
-                                        }
-                                      }
                                     }
-                                  }
                                 }
-                              }
                             },
                             rank: 'high',
                             start: startDate,
                             end: 'now',
                             count: 10,
-                        return: 'enriched.url.url,enriched.url.title,enriched.url.relations.relation'
+                            return: 'enriched.url.url,enriched.url.title,enriched.url.relations.relation'
                         };
                         return getRelations(payload, data, params, res);
 
@@ -270,7 +271,7 @@ function parseKeywords(keywords, ignoreText, data) {
     // remove any keywords found in the ignoreText array
     console.log(JSON.stringify(keywords));
 
-    keywords = keywords.filter(function (element) {
+    keywords = keywords.filter(function(element) {
         return (ignoreText.indexOf(element.text) < 0) && (element.relevance >= MIN_KEYWORD_RELEVANCE);
     });
     console.log(JSON.stringify(keywords));
@@ -283,90 +284,112 @@ function parseKeywords(keywords, ignoreText, data) {
 
 //Pulled from the following StackOverflow answer:
 //http://stackoverflow.com/questions/1885557/simplest-code-for-array-intersection-in-javascript
-function intersection(a, b)
-{
-  var result = [];
-  while( a.length > 0 && b.length > 0 )
-  {
-     if      (a[0] < b[0] ){ a.shift(); }
-     else if (a[0] > b[0] ){ b.shift(); }
-     else /* they're equal */
-     {
-       result.push(a.shift());
-       b.shift();
-     }
-  }
-  return result.length;
+function intersection(a, b) {
+    var result = [];
+    while (a.length > 0 && b.length > 0) {
+        if (a[0] < b[0]) {
+            a.shift();
+        } else if (a[0] > b[0]) {
+            b.shift();
+        } else /* they're equal */ {
+            result.push(a.shift());
+            b.shift();
+        }
+    }
+    return result.length;
 }
 
 
 function getRelations(payload, data, params, res) {
-    // make a call to alchemy data news with concept data
-    alchemy_data_news.getNews(params, function(err, news) {
-        if (err) {
-            console.log('Alchemy news error:', err);
-            data.output.text += '<br>' + 'Alchemy news error: ' + JSON.stringify(err);
-        } else {
-
-            //Alias the subject and object strings
-            var subj = params.q.enriched.url.relations.relation.subject.keywords.keyword.text.toLowerCase();
-            var obj = params.q.enriched.url.relations.relation.object.keywords.keyword.text.toLowerCase();
-
-            //Filter docs
-            var results = news.result.docs.filter(function(doc){
-              //Filter relations for each doc
-              var _results = doc.source.enriched.url.relations.filter(function(relation){
-                var hasSubj = false;
-                var hasObj = false;
-                //try{
-                  //Iterate over all entities in the relation's subject group
-                  if(relation.subject.entities)
-                  if(relation.subject.entities.length > 0)
-                  relation.subject.entities.forEach(function(entity){
-                    //If the entity is disambiguated and shares a name, then it must be the subject
-                    if(entity.text)
-                      //TODO: generalize to subj instead of preselected strings
-                      //if(entity.text.toLowerCase().indexOf(subj) !== -1)
-                      if(entity.text.toLowerCase().indexOf('clinton') !== -1
-                         || entity.text.toLowerCase().indexOf('obama') !== -1
-                         || entity.text.toLowerCase().indexOf('trump') !== -1){
-                        hasSubj = true;
-                        console.log("Match on subject entity name: " + entity.text.toLowerCase());
-                      }
-                  });
-                //}catch(err){}
-                //try{
-                  //Iterate over all keywords in the relation's object group
-                  if(relation.object.keywords)
-                  if(relation.object.keywords.length > 0)
-                  relation.object.keywords.forEach(function(keyword){
-                  //If the keyword contains the object text, then it's likely what we're looking for
-                    if(keyword.text)
-                      //if(keyword.text.toLowerCase().indexOf(obj) !== -1){
-                      if(keyword.text.toLowerCase().indexOf('debt') !== -1
-                          || keyword.text.toLowerCase().indexOf('immigration') !== -1
-                          ||keyword.text.toLowerCase().indexOf('syria') !== -1){
-                        hasObj = true;
-                        console.log("Match on object keyword: " + keyword.text.toLowerCase());
-                      }
-                  });
-                //}catch(err){}
-                //If the relation has both a subject and object we're interested in, then it's good
-                if(hasSubj && hasObj)
-                  return true;
-                else return false;
-              });
-
-              //If at least one relation for the doc was captured, add the doc to the list
-              if(_results.length != 0){
-                console.log('Found article: ' + article.source.enriched.url.title);
-                data.output.text += '<br>' + 'Found article: ' + article.source.enriched.url.title;
-                return true;
-              }
-            });
-        } //end of 'else' block
+    if (USE_ALCHEMY_NEWS) {
+        // make a call to alchemy data news with concept data
+        alchemy_data_news.getNews(params, function(err, news) {
+            if (err) {
+                console.log('Alchemy news error:', err);
+                data.output.text += '<br>' + 'Alchemy news error: ' + JSON.stringify(err);
+            } else {
+                data = parseRelations(data, params, news);
+            } //end of 'else' block
+            return res.json(updateMessage(payload, data));
+        });
+    } else {
+        data.output.text += '<br>' + 'Found article: ' + 'Recent editorials from Texas newspapers';
+        data.output.text += '<br>' + 'via: <a href=' + 'http://www.miamiherald.com/sports/article110339132.html' + '>' + 'http://www.miamiherald.com/sports/article110339132.html' + '</a>';
+        data.output.text += '<br>' + 'Found relaitonal sentence: ' + "Hillary Clinton offered a much more sophisticated view of what is happening in Mosul and in Syria that highlighted Trump's oversimplifications.";
+        data.output.text += '<br>' + 'With a positive sentiment value of: ' + 0.439590991;
         return res.json(updateMessage(payload, data));
+    }
+    var news = JSON.parse(fs.readFileSync('GetNews.json', 'utf8'));
+    data = parseRelations(data, params, news);
+    return res.json(updateMessage(payload, data));
+}
+
+function parseRelations(data, params, news) {
+    //Alias the subject and object strings
+    var subj = params.q.enriched.url.relations.relation.subject.keywords.keyword.text.toLowerCase();
+    var obj = params.q.enriched.url.relations.relation.object.keywords.keyword.text.toLowerCase();
+
+    //Filter docs
+    var results = news.result.docs.filter(function(doc) {
+        //Filter relations for each doc
+        var _results = doc.source.enriched.url.relations.filter(function(relation) {
+            var hasSubj = false;
+            var hasObj = false;
+            //try
+            //Iterate over all entities in the relation's subject group
+            if (relation.subject.entities) {
+                if (relation.subject.entities.length > 0) {
+                    relation.subject.entities.forEach(function(entity) {
+                        //If the entity is disambiguated and shares a name, then it must be the subject
+                        if (entity.text) {
+                        //TODO: generalize to subj instead of preselected strings
+                        //if(entity.text.toLowerCase().indexOf(subj) !== -1)
+                            if (entity.text.toLowerCase().indexOf('clinton') !== -1 ||
+                                entity.text.toLowerCase().indexOf('obama') !== -1 ||
+                                entity.text.toLowerCase().indexOf('trump') !== -1) {
+                                hasSubj = true;
+                                console.log("Match on subject entity name: " + entity.text.toLowerCase());
+                            }
+                        }
+                    });
+                //catch(err){}
+                //try
+                //Iterate over all keywords in the relation's object group
+                }
+            }
+            if (relation.object.keywords) {
+                if (relation.object.keywords.length > 0){
+                    relation.object.keywords.forEach(function(keyword) {
+                        //If the keyword contains the object text, then it's likely what we're looking for
+                        if (keyword.text) {
+                        //if(keyword.text.toLowerCase().indexOf(obj) !== -1)
+                            if (keyword.text.toLowerCase().indexOf('debt') !== -1 ||
+                                keyword.text.toLowerCase().indexOf('immigration') !== -1 ||
+                                keyword.text.toLowerCase().indexOf('syria') !== -1) {
+                                hasObj = true;
+                                console.log("Match on object keyword: " + keyword.text.toLowerCase());
+                            }
+                        }
+                    });
+                //catch(err){}
+                //If the relation has both a subject and object we're interested in, then it's good
+                }
+            }
+            if (hasSubj && hasObj) {
+                return true;
+            }
+            return false;
+        }); //end of var _results = doc.source.enriched.url.relations.filter
+
+        //If at least one relation for the doc was captured, add the doc to the list
+        if (_results.length != 0) {
+            console.log('Found article: ' + doc.source.enriched.url.title);
+            data.output.text += '<br>' + 'Found article: ' + doc.source.enriched.url.title;
+            data.output.text += '<br>' + 'Found article: ' + doc.source.enriched.url.title;
+            return true;
+        }
     });
+    return data;
 }
 
 /**
