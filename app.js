@@ -265,9 +265,12 @@ function parseDate(dates, data) {
 
 function parseKeywords(keywords, ignoreText, data) {
     // remove any keywords found in the ignoreText array
+    console.log(JSON.stringify(keywords));
+
     keywords = keywords.filter(function (element) {
-        return ignoreText.indexOf(element) < 0 && element.relevance >= MIN_KEYWORD_RELEVANCE;
+        return (ignoreText.indexOf(element.text) < 0) && (element.relevance >= MIN_KEYWORD_RELEVANCE);
     });
+    console.log(JSON.stringify(keywords));
     for (var i = 0, length = keywords.length; i < length; i++) {
         data.output.text += '<br>' + 'Found keyword: ' + keywords[i].text;
     }
