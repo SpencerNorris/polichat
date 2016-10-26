@@ -117,7 +117,6 @@ function parseInput(payload, data, res) {
         text: data.input.text,
         anchorDate: currDate.toISOString().substring(0, 10) + ' 00:00:00'
     };
-
     alchemy_language.combined(parameters, function(err, response) {
         if (err) {
             console.log('Alchemy Language error:', err);
@@ -141,6 +140,7 @@ function parseInput(payload, data, res) {
             }
             if (data.context.keywords) {
                 keywords = data.context.keywords;
+                console.log(JSON.stringify(keywords));
             }
 
             // if the input has usable language, continue parsing
@@ -170,6 +170,7 @@ function parseInput(payload, data, res) {
 
                 if (RETRIEVE_ARTICLES) {
                     if (person.name && keywords.length > 0) {
+                      console.log("Attempting document retrieval")
                         var params = {
                             q: {
                               enriched :{
@@ -179,7 +180,7 @@ function parseInput(payload, data, res) {
                                       object:{
                                         keywords:{
                                           keyword:{
-                                            text: keywords[0]
+                                            text: keywords[0].text
                                           }
                                         }
                                       },
@@ -194,13 +195,14 @@ function parseInput(payload, data, res) {
                                   }
                                 }
                               }
-                            }
+                            },
                             start: startDate,
                             end: 'now',
                             count: 3,
-                        return: 'enriched.url.title,enriched.url.url,enriched.url.relations.relation'
+                        return: 'enriched.url.url,enriched.url.title,enriched.url.relations.relation'
                         };
-                        //return getArticles(payload, data, params);
+                        data.context.relations = getRelations(payload, data, params);
+                        return appendMessage(payload, data);
                     } else if (!person.name && keywords.length === 0) {
                         data.output.text += '<br>' + 'Please enter a name and topic to continue.';
                     } else if (!person.name) {
@@ -276,7 +278,9 @@ function parseKeywords(keywords, ignoreText, data) {
     return keywords;
 }
 
-function getArticles(payload, data, params) {
+function getRelations(payload, data, params) {
+
+    console.log('retrieving articles...')
 
     // make a call to alchemy data news with concept data
     alchemy_data_news.getNews(params, function(err, news) {
@@ -286,12 +290,23 @@ function getArticles(payload, data, params) {
         } else {
             console.log(JSON.stringify(news));
 
+            //iterate over retrieved articles
             for (var i = 0, length = news.result.docs.length; i < length; i++) {
                 var article = news.result.docs[i];
                 console.log('Found article: ' + article.source.enriched.url.title);
                 data.output.text += '<br>' + 'Found article: ' + article.source.enriched.url.title;
-            }
+                //iterate over relations extracted from article
+                for(relation in article.relations.source.enriched.ur.relations){
 
+                    console.log(JSON.stringify(relation));
+                    //TODO:Check if relation subject, object match ones passed in params
+                    if(  relation.subject.keywords.text
+                          == params.q.enriched.url.relations.relation.subject.keywords.keyword &&
+                         relation.object.keywords.text
+                          == params.q.enriched.url.relations.relation.object.keywords.keyword)
+                        console.log('Relation match: '+ JSON.stringify(relation));
+                }
+            }
         }
         // Send message back to chat
     });
@@ -308,7 +323,6 @@ function updateMessage(input, response) {
 
     /*
     var _ = require('underscore');
-
     var parameters = {
       extract: 'entities,keywords,concepts,taxonomy,typed-rels',
       sentiment: 1,
@@ -316,7 +330,6 @@ function updateMessage(input, response) {
       model: 'en-news',
       text: input['input']['text']
     };
-
     alchemy_language.combined(parameters, function (err, response) {
       if (err)
         console.log('error:', err);
