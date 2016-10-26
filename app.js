@@ -196,6 +196,7 @@ function parseInput(payload, data, res) {
                                 }
                               }
                             },
+                            rank: 'high',
                             start: startDate,
                             end: 'now',
                             count: 3,
@@ -284,6 +285,66 @@ function parseKeywords(keywords, ignoreText, data) {
 }
 
 function getRelations(payload, data, params, res) {
+    // make a call to alchemy data news with concept data
+    alchemy_data_news.getNews(params, function(err, news) {
+        if (err) {
+            console.log('Alchemy news error:', err);
+            data.output.text += '<br>' + 'Alchemy news error: ' + JSON.stringify(err);
+        } else {
+
+            //Alias the subject and object strings
+            var subj = params.q.enriched.url.relations.relation.subject.keywords.keyword.toLowerCase();
+            var obj = params.q.enriched.url.relations.relation.object.keywords.keyword.toLowerCase();
+
+            //Filter docs
+            var results = news.result.docs.filter(function(doc){
+
+              //Filter relations for each doc
+              var _results = doc.source.enriched.url.relations.filter(function(relation){
+                var hasSubj = false;
+                var hasObj = false;
+                //Iterate over all entities in the relation's subject group
+                for(entity in relation.subject.entities){
+                  //If the entity is disambiguated and shares a name, then it must be the subject
+                  if(entity.disambiguated.name.toLowerCase().indexOf(subj) !== -1)
+                    hasSubj = true;
+                }
+                //Iterate over all keywords in the relation's object group
+                for(keyword in relation.object.keywords){
+                  //If the keyword contains the object text, then it's likely what we're looking for
+                  if(keyword.text.toLowerCase().indexOf(obj) !== -1)
+                    hasObj = true;
+                }
+                //If the relation has both a subject and object we're interested in, then it's good
+                if(hasSubj && hasObj)
+                  return true;
+                else return false;
+              });
+
+              //If at least one relation for the doc was captured, add the doc to the list
+              if(_results.length != 0){
+                console.log('Found article: ' + article.source.enriched.url.title);
+                data.output.text += '<br>' + 'Found article: ' + article.source.enriched.url.title;
+                return true;
+              }
+            });
+
+            /*
+            for (var i = 0, length = news.result.docs.length; i < length; i++) {
+                var article = news.result.docs[i];
+                console.log('Found article: ' + article.source.enriched.url.title);
+                data.output.text += '<br>' + 'Found article: ' + article.source.enriched.url.title;
+
+
+            }
+            */
+        }
+        return res.json(updateMessage(payload, data));
+    });
+}
+
+/*
+function getRelations(payload, data, params, res) {
 
     console.log('retrieving articles...')
     // make a call to alchemy data news with concept data
@@ -315,6 +376,7 @@ function getRelations(payload, data, params, res) {
         return res.json(updateMessage(payload, data));
     });
 }
+*/
 
 /**
  * Updates the response text using the intent confidence
