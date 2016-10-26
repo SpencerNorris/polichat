@@ -199,13 +199,10 @@ function parseInput(payload, data, res) {
                             rank: 'high',
                             start: startDate,
                             end: 'now',
-                            count: 3,
+                            count: 10,
                         return: 'enriched.url.url,enriched.url.title,enriched.url.relations.relation'
                         };
-                        data.context.relations = getRelations(payload, data, params, res);
-                        return data;
-                        //TODO: Implement appendMessage --> should return data with the message derived from the relations attached
-                        //return appendMessage(payload, data);
+                        return getRelations(payload, data, params, res);
 
                     } else if (!person.name && keywords.length === 0) {
                         data.output.text += '<br>' + 'Please enter a name and topic to continue.';
@@ -293,32 +290,41 @@ function getRelations(payload, data, params, res) {
         } else {
 
             //Alias the subject and object strings
-            var subj = params.q.enriched.url.relations.relation.subject.keywords.keyword.toLowerCase();
-            var obj = params.q.enriched.url.relations.relation.object.keywords.keyword.toLowerCase();
+            var subj = params.q.enriched.url.relations.relation.subject.keywords.keyword.text.toLowerCase();
+            var obj = params.q.enriched.url.relations.relation.object.keywords.keyword.text.toLowerCase();
 
             //Filter docs
             var results = news.result.docs.filter(function(doc){
-
               //Filter relations for each doc
               var _results = doc.source.enriched.url.relations.filter(function(relation){
                 var hasSubj = false;
                 var hasObj = false;
-                //Iterate over all entities in the relation's subject group
-                for(entity in relation.subject.entities){
-                  //If the entity is disambiguated and shares a name, then it must be the subject
-                  if(entity.disambiguated.name.toLowerCase().indexOf(subj) !== -1){
-                    hasSubj = true;
-                    console.log("Match on subject entity name: " + entity.disambiguated.name.toLowerCase());
-                  }
-                }
-                //Iterate over all keywords in the relation's object group
-                for(keyword in relation.object.keywords){
+                //try{
+                  //Iterate over all entities in the relation's subject group
+                  if(relation.subject.entities)
+                  if(relation.subject.entities.length > 0)
+                  relation.subject.entities.forEach(function(entity){
+                    //If the entity is disambiguated and shares a name, then it must be the subject
+                    if(entity.text)
+                      if(entity.text.toLowerCase().indexOf(subj) !== -1){
+                        hasSubj = true;
+                        console.log("Match on subject entity name: " + entity.text.toLowerCase());
+                      }
+                  });
+                //}catch(err){}
+                //try{
+                  //Iterate over all keywords in the relation's object group
+                  if(relation.object.keywords)
+                  if(relation.object.keywords.length > 0)
+                  relation.object.keywords.forEach(function(keyword){
                   //If the keyword contains the object text, then it's likely what we're looking for
-                  if(keyword.text.toLowerCase().indexOf(obj) !== -1){
-                    hasObj = true;
-                    console.log("Match on object keyword: " + keyword.text.toLowerCase());
-                  }
-                }
+                    if(keyword.text)
+                      if(keyword.text.toLowerCase().indexOf(obj) !== -1){
+                        hasObj = true;
+                        console.log("Match on object keyword: " + keyword.text.toLowerCase());
+                      }
+                  });
+                //}catch(err){}
                 //If the relation has both a subject and object we're interested in, then it's good
                 if(hasSubj && hasObj)
                   return true;
@@ -332,17 +338,7 @@ function getRelations(payload, data, params, res) {
                 return true;
               }
             });
-
-            /*
-            for (var i = 0, length = news.result.docs.length; i < length; i++) {
-                var article = news.result.docs[i];
-                console.log('Found article: ' + article.source.enriched.url.title);
-                data.output.text += '<br>' + 'Found article: ' + article.source.enriched.url.title;
-
-
-            }
-            */
-        }
+        } //end of 'else' block
         return res.json(updateMessage(payload, data));
     });
 }
