@@ -147,7 +147,7 @@ function parseInput(payload, data, res) {
             // if not, send default message
             if (hasEntity || hasKeyword || hasDate) {
                 console.log(JSON.stringify(response));
-                data.output.text = 'Parsing with Alchemy Language';
+                data.output.text = 'Parsing with Alchemy Language...';
 
                 if (hasEntity) {
                     person = parsePerson(response.entities, data);
@@ -202,7 +202,9 @@ function parseInput(payload, data, res) {
                         return: 'enriched.url.url,enriched.url.title,enriched.url.relations.relation'
                         };
                         data.context.relations = getRelations(payload, data, params);
-                        return appendMessage(payload, data);
+                        //TODO: Implement appendMessage --> should return data with the message derived from the relations attached
+                        //return appendMessage(payload, data);
+
                     } else if (!person.name && keywords.length === 0) {
                         data.output.text += '<br>' + 'Please enter a name and topic to continue.';
                     } else if (!person.name) {
@@ -214,7 +216,6 @@ function parseInput(payload, data, res) {
             }
 
         }
-
         return res.json(updateMessage(payload, data));
 
     });
@@ -268,9 +269,12 @@ function parseDate(dates, data) {
 
 function parseKeywords(keywords, ignoreText, data) {
     // remove any keywords found in the ignoreText array
+    console.log(JSON.stringify(keywords));
+
     keywords = keywords.filter(function (element) {
-        return !ignoreText.indexOf(element) < 0 && element.relevance >= MIN_KEYWORD_RELEVANCE;
+        return (ignoreText.indexOf(element.text) < 0) && (element.relevance >= MIN_KEYWORD_RELEVANCE);
     });
+    console.log(JSON.stringify(keywords));
     for (var i = 0, length = keywords.length; i < length; i++) {
         data.output.text += '<br>' + 'Found keyword: ' + keywords[i].text;
     }
@@ -281,7 +285,6 @@ function parseKeywords(keywords, ignoreText, data) {
 function getRelations(payload, data, params) {
 
     console.log('retrieving articles...')
-
     // make a call to alchemy data news with concept data
     alchemy_data_news.getNews(params, function(err, news) {
         if (err) {
@@ -308,7 +311,7 @@ function getRelations(payload, data, params) {
                 }
             }
         }
-        // Send message back to chat
+        return res.json(updateMessage(payload, data));
     });
 }
 
