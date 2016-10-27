@@ -32,6 +32,8 @@ var alchemy_data_news = watson.alchemy_data_news({
     'api_key': credentials['credentials']['apikey']
 });
 
+var stringSimilarity = require('string-similarity');
+
 // The following requires are needed for logging purposes
 var uuid = require('uuid');
 var vcapServices = require('vcap_services');
@@ -41,6 +43,8 @@ var basicAuth = require('basic-auth-connect');
 const RETRIEVE_ARTICLES = true;
 const MIN_KEYWORD_RELEVANCE = 0.5;
 const USE_ALCHEMY_NEWS = false;
+const MIN_PERSON_SIMILARITY = 0.5;
+const MIN_KEYWORD_SIMILARITY = 0.2;
 
 // The app owner may optionally configure a cloudand db to track user input.
 // This cloudand db is not required, the app will operate without it.
@@ -148,7 +152,7 @@ function parseInput(payload, data, res) {
             // if not, send default message
             if (hasEntity || hasKeyword || hasDate) {
                 console.log(JSON.stringify(response));
-                data.output.text = 'Parsing with Alchemy Language...';
+                data.output.text = '<h0>' + 'Parsing with Alchemy Language...' + '</h0>';
 
                 if (hasEntity) {
                     person = parsePerson(response.entities, data);
@@ -200,7 +204,7 @@ function parseInput(payload, data, res) {
                             rank: 'high',
                             start: startDate,
                             end: 'now',
-                            count: 10,
+                            count: 50,
                             return: 'enriched.url.url,enriched.url.title,enriched.url.relations.relation'
                         };
                         return getRelations(payload, data, params, res);
@@ -239,7 +243,7 @@ function parsePerson(entities, data) {
         }
 
         console.log('Found person: ' + person.name);
-        data.output.text += '<br>' + 'Found person: ' + person.name;
+        data.output.text += '<br>' + '<h0>' + 'Found person: ' + person.name  + '</h0>';
     } else {
         console.log('Could not find a person');
         data.output.text += '<br>' + 'Could not find a person';
@@ -262,7 +266,7 @@ function parseDate(dates, data) {
     var dateDifference = Math.round(Math.abs(
         (currDate.getTime() - foundDate.getTime()) / dayInMillisec));
     console.log('Found a date difference of ' + dateDifference + ' days');
-    data.output.text += '<br>' + 'Found date of earliest articles to search for: ' + foundDate.toDateString();
+    data.output.text += '<br>' + '<h0>' + 'Found date of earliest articles to search for: ' + foundDate.toDateString() + '</h0>';
     return 'now-' + dateDifference + 'd';
 
 }
@@ -276,7 +280,7 @@ function parseKeywords(keywords, ignoreText, data) {
     });
     console.log(JSON.stringify(keywords));
     for (var i = 0, length = keywords.length; i < length; i++) {
-        data.output.text += '<br>' + 'Found keyword: ' + keywords[i].text;
+        data.output.text += '<br>' + '<h0>' + 'Found keyword: ' + keywords[i].text + '</h0>';
     }
 
     return keywords;
@@ -313,28 +317,26 @@ function getRelations(payload, data, params, res) {
             return res.json(updateMessage(payload, data));
         });
     } else {
-        data.output.text += '<br>' + 'Found article: ' + 'Recent editorials from Texas newspapers';
-        data.output.text += '<br>' + 'via: <a href=' + 'http://www.miamiherald.com/sports/article110339132.html' + '>' + 'http://www.miamiherald.com/sports/article110339132.html' + '</a>';
-        data.output.text += '<br>' + 'Found relaitonal sentence: ' + "Hillary Clinton offered a much more sophisticated view of what is happening in Mosul and in Syria that highlighted Trump's oversimplifications.";
-        data.output.text += '<br>' + 'With a positive sentiment value of: ' + 0.439590991;
+        //pull from preloaded JSON object
+        var news = JSON.parse(fs.readFileSync('GetNews.json', 'utf8'));
+        data = parseRelations(data, params, news);
         return res.json(updateMessage(payload, data));
     }
-    var news = JSON.parse(fs.readFileSync('GetNews.json', 'utf8'));
-    data = parseRelations(data, params, news);
-    return res.json(updateMessage(payload, data));
 }
 
 function parseRelations(data, params, news) {
     //Alias the subject and object strings
-    var subj = params.q.enriched.url.relations.relation.subject.keywords.keyword.text.toLowerCase();
-    var obj = params.q.enriched.url.relations.relation.object.keywords.keyword.text.toLowerCase();
+    var subj = params.q.enriched.url.relations.relation.subject.keywords.keyword.text;
+    var obj = params.q.enriched.url.relations.relation.object.keywords.keyword.text;
 
     //Filter docs
     var results = news.result.docs.filter(function(doc) {
+        var _resultsRelevance = {};
         //Filter relations for each doc
         var _results = doc.source.enriched.url.relations.filter(function(relation) {
             var hasSubj = false;
             var hasObj = false;
+            var sentence = relation.sentence;
             //try
             //Iterate over all entities in the relation's subject group
             if (relation.subject.entities) {
@@ -343,12 +345,11 @@ function parseRelations(data, params, news) {
                         //If the entity is disambiguated and shares a name, then it must be the subject
                         if (entity.text) {
                         //TODO: generalize to subj instead of preselected strings
-                        //if(entity.text.toLowerCase().indexOf(subj) !== -1)
-                            if (entity.text.toLowerCase().indexOf('clinton') !== -1 ||
-                                entity.text.toLowerCase().indexOf('obama') !== -1 ||
-                                entity.text.toLowerCase().indexOf('trump') !== -1) {
+                            var similarity = stringSimilarity.compareTwoStrings(entity.text, subj)
+                            if(similarity > MIN_PERSON_SIMILARITY) {
                                 hasSubj = true;
-                                console.log("Match on subject entity name: " + entity.text.toLowerCase());
+                                _resultsRelevance[sentence] = similarity;
+                                console.log("Match on subject entity name: " + subj);
                             }
                         }
                     });
@@ -362,12 +363,13 @@ function parseRelations(data, params, news) {
                     relation.object.keywords.forEach(function(keyword) {
                         //If the keyword contains the object text, then it's likely what we're looking for
                         if (keyword.text) {
-                        //if(keyword.text.toLowerCase().indexOf(obj) !== -1)
-                            if (keyword.text.toLowerCase().indexOf('debt') !== -1 ||
-                                keyword.text.toLowerCase().indexOf('immigration') !== -1 ||
-                                keyword.text.toLowerCase().indexOf('syria') !== -1) {
+                            var similarity = stringSimilarity.compareTwoStrings(keyword.text, obj);
+                            if(similarity > MIN_KEYWORD_SIMILARITY) {
                                 hasObj = true;
-                                console.log("Match on object keyword: " + keyword.text.toLowerCase());
+                                if (_resultsRelevance[sentence]) {
+                                    _resultsRelevance[sentence] = _resultsRelevance[sentence] + similarity;
+                                }
+                                console.log("Match on object keyword: " + obj);
                             }
                         }
                     });
@@ -376,16 +378,22 @@ function parseRelations(data, params, news) {
                 }
             }
             if (hasSubj && hasObj) {
+                console.log("FOUND RELATION");
                 return true;
             }
             return false;
         }); //end of var _results = doc.source.enriched.url.relations.filter
 
+        console.log(JSON.stringify("_resultsRelevance: " + JSON.stringify(_resultsRelevance)));
         //If at least one relation for the doc was captured, add the doc to the list
         if (_results.length != 0) {
-            console.log('Found article: ' + doc.source.enriched.url.title);
-            data.output.text += '<br>' + 'Found article: ' + doc.source.enriched.url.title;
-            data.output.text += '<br>' + 'Found article: ' + doc.source.enriched.url.title;
+            //find most relevant relation
+            var mostRelevant = Object.keys(_resultsRelevance).reduce(function(a, b){ return obj[a] > obj[b] ? a : b });
+            console.log("Most relevant relation with " + _resultsRelevance[mostRelevant] + ' relevance is: ' + mostRelevant);
+            var urlData = doc.source.enriched.url;
+            data.output.text += '<br>' + 'Found article: ' + urlData.title;
+            data.output.text += '<br>' + '<h0>' + 'via: <a href=' + urlData.url + '>' + urlData.url + '</a>' + '</h0>';
+            data.output.text += '<br>' + 'Found relaitonal sentence with relevance of ' + _resultsRelevance[mostRelevant] + ': ' + mostRelevant;
             return true;
         }
     });
